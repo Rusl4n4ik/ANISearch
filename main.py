@@ -13,7 +13,7 @@ from prettytable import PrettyTable
 import asyncio
 
 client = kitsu.Client()
-API_TOKEN = '5255963293:AAFPmVhdCPDsOnqBDzdy-qWfOdBCIqrIsmU'
+API_TOKEN = ' '
 bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
