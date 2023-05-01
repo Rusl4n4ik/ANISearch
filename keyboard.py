@@ -4,5 +4,5 @@ from aiogram.types import ReplyKeyboardRemove, \
     InlineKeyboardMarkup, InlineKeyboardButton
 
 menu = types.ReplyKeyboardMarkup(row_width=2, resize_keyboard=True)
-menu_btn = ['Search Anime', 'Visit web-site', 'Search Manga', 'About', 'Trending Anime']
+menu_btn = ['Search Anime', 'Visit web-site', 'Search Manga', 'About', 'Trending Anime', 'Trending Manga']
 menu.add(*menu_btn)

@@ -1,3 +1,4 @@
+import aiogram
 from aiogram.types import ContentType, Message
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters import Text
@@ -12,8 +13,9 @@ from aiogram.utils.markdown import hlink
 from prettytable import PrettyTable
 import asyncio
 
+
 client = kitsu.Client()
-API_TOKEN = ' '
+API_TOKEN = '5255963293:AAFPmVhdCPDsOnqBDzdy-qWfOdBCIqrIsmU'
 bot = Bot(token=API_TOKEN, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot, storage=MemoryStorage())
 
@@ -118,10 +120,26 @@ async def trending(message: types.Message):
     await message.answer(f"Found [{len(data)}] trending animes")
     for anime in data:
         chat_id = message.from_user.id
-        await bot.send_photo(chat_id, photo=anime.poster_image())
-        await message.answer("Canonical Title: " + anime.canonical_title)
-        await message.answer("Average Rating: " + str(anime.average_rating))
-        await message.answer("\n")
+        try:
+            await bot.send_photo(chat_id, photo=anime.poster_image(),
+                                 caption="Canonical Title: " + anime.canonical_title + "\n" +
+                                         "Average Rating: " + str(anime.average_rating) + "\n")
+        except aiogram.utils.exceptions.WrongFileIdentifier:
+            await message.answer("Canonical Title: " + anime.canonical_title + "\n" +
+                                  "Average Rating: " + str(anime.average_rating) + "\n")
+
+
+@dp.message_handler(Text(equals="Trending Manga"))
+async def trending(message: types.Message):
+    data = await client.trending_manga()
+    await message.answer(f"Found [{len(data)}] trending manga")
+    for manga in data:
+        chat_id = message.from_user.id
+        await bot.send_photo(chat_id, photo=manga.poster_image())
+        await message.answer("Canonical Title: " + manga.canonical_title + "\n" +
+                             "Average Rating: " + str(manga.average_rating) + "\n")
+
+
 
 
 # @dp.message_handler(commands=['search'])
