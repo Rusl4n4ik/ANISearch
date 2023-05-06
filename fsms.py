@@ -7,3 +7,7 @@ class Name(StatesGroup):
 
 class Manga(StatesGroup):
     manga = State()
+
+
+class Character(StatesGroup):
+    char = State()
