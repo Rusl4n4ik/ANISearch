@@ -1,4 +1,4 @@
-import aiogram, kitsu, asyncio, random, requests, json, giphy_client, aiohttp
+import aiogram, kitsu, asyncio, random, requests, json, giphy_client, aiohttp, time, html
 from aiogram.types import ContentType, Message
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters import Text
@@ -9,6 +9,9 @@ from keyboard import menu
 from db import check_existing, add_user
 import aiogram.utils.markdown as fmt
 from googletrans import Translator
+import os
+from googleapiclient.discovery import build
+from youtube_dl import YoutubeDL
 
 
 client = kitsu.Client()
@@ -19,6 +22,7 @@ giphy_api_key = "WN2wTCexCkLA6SbotqtjOq6Dy4yVsY6C"
 api_instance = giphy_client.DefaultApi()
 
 
+#Start_Command
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
     exist_user = check_existing(message.chat.id)
@@ -30,24 +34,35 @@ async def start_handler(message: types.Message):
         await message.answer("Choose option from menu below:", reply_markup=menu)
 
 
+#Get_PicID
 @dp.message_handler(content_types=ContentType.PHOTO)
 async def send_photo_id(message: Message):
     await message.reply(message.photo[-1].file_id)
 
 
+#Search_Anime
 @dp.message_handler(Text(equals="⟡Search Anime⟡"))
 async def search(message: types.Message):
     await message.answer("Enter Anime name: ", reply_markup=types.ReplyKeyboardRemove())
     await Name.anime.set()
 
 
+#Get_YT_link
+def get_youtube_link(anime_title):
+    youtube_link = f"https://www.youtube.com/results?search_query={anime_title}+opening"
+    return youtube_link
+
+
+#Send_ANIresult
 @dp.message_handler(state=Name)
 async def anima(message: types.Message, state: FSMContext):
-    anm = message.text
-    anime = await client.search_anime(anm, limit=1)
+    input_text = message.text
+    anime_name = input_text.split()
+    youtube_query = '+'.join(anime_name) + "+opening"
+    youtube_link = f"https://www.youtube.com/results?search_query={youtube_query}"
+    anime = await client.search_anime(anime_name, limit=1)
     chat_id = message.from_user.id
     try:
-        animego_link = f"https://animego.org/anime/{anime.id}"
         caption = (
             f"Canonical Title: {anime.canonical_title}\n"
             f"Title in 🇬🇧: {str(anime.title.en_jp)}\n"
@@ -55,7 +70,7 @@ async def anima(message: types.Message, state: FSMContext):
             f"Average Rating: {str(anime.average_rating)}\n"
             f"Chapters: {str(anime.episode_count)}\n\n\n"
             f"About: {str(anime.synopsis)}\n\n"
-            f"Watch on Animego: {animego_link}"
+            f"Watch opening on YouTube: {youtube_link}"
         )
         await bot.send_photo(chat_id, photo=anime.poster_image(), caption=caption, reply_markup=menu)
         await state.finish()
@@ -64,18 +79,21 @@ async def anima(message: types.Message, state: FSMContext):
         await state.finish()
 
 
+#Visit_WebSite
 @dp.message_handler(Text(equals="⟡Visit web-site⟡"))
 async def search(message: types.Message):
     kitsu = "TAP ME 👾"
     await message.answer(fmt.hlink(kitsu, "https://kitsu.io/explore/anime"), reply_markup=menu)
 
 
+#Search_Manga
 @dp.message_handler(Text(equals="⟡Search Manga⟡"))
 async def search(message: types.Message):
     await message.answer("Enter Manga name: ", reply_markup=types.ReplyKeyboardRemove())
     await Manga.manga.set()
 
 
+#Send_MNGresult
 @dp.message_handler(state=Manga)
 async def manha(message: types.Message, state: FSMContext):
     mng = message.text
@@ -95,6 +113,7 @@ async def manha(message: types.Message, state: FSMContext):
     # await client.close()
 
 
+#Bot_info
 @dp.message_handler(Text(equals="⟡About⟡"))
 async def search(message: types.Message):
     chat_id = message.from_user.id
@@ -105,6 +124,7 @@ async def search(message: types.Message):
                                                                   "and also Description"))
 
 
+#Trending_Anime
 @dp.message_handler(Text(equals="⟡Trending Anime⟡"))
 async def trending(message: types.Message):
     data = await client.trending_anime()
@@ -120,6 +140,7 @@ async def trending(message: types.Message):
                                   "Average Rating: " + str(anime.average_rating) + "\n")
 
 
+#Trending_Manga
 @dp.message_handler(Text(equals="⟡Trending Manga⟡"))
 async def trending(message: types.Message):
     data = await client.trending_manga()
@@ -131,6 +152,7 @@ async def trending(message: types.Message):
                                      f"Average Rating: {manga.average_rating}\n")
 
 
+#Search_character_func
 def search_character(query):
     url = f"https://kitsu.io/api/edge/characters?filter[name]={query}"
     headers = {'Accept': 'application/vnd.api+json',
@@ -173,7 +195,7 @@ async def character_handler_query(message: types.Message, state: FSMContext):
     else:
         await message.answer("Please provide a character name.")
 
-
+#AniGIF
 def get_anime_gif():
     url = f"https://api.giphy.com/v1/gifs/random?api_key=WN2wTCexCkLA6SbotqtjOq6Dy4yVsY6C&tag=anime"
     response = requests.get(url)
@@ -181,11 +203,62 @@ def get_anime_gif():
     return data["data"]["images"]["original"]["url"]
 
 
+#AniGIF
 @dp.message_handler(Text(equals="⟡Random AniGIF⟡"))
 async def send_anime_gif(message: types.Message):
     chat_id = message.chat.id
     gif_url = get_anime_gif()
     await bot.send_animation(chat_id, animation=gif_url)
+
+
+#Random_Anime
+async def get_random_anime():
+    url = "https://kitsu.io/api/edge/anime"
+    headers = {"Accept": "application/vnd.api+json"}
+    params = {"page[limit]": 20, "sort": "-userCount"}
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    anime_list = data["data"]
+                    if anime_list:
+                        random_anime = random.choice(anime_list)
+                        anime_id = random_anime["id"]
+                        anime_title = random_anime["attributes"]["canonicalTitle"]
+                        anime_image_url = random_anime["attributes"]["posterImage"]["original"]
+                        anime_description = random_anime["attributes"]["synopsis"]  # Updated attribute name
+
+                        return {
+                            "id": anime_id,
+                            "title": anime_title,
+                            "image_url": anime_image_url,
+                            "description": anime_description
+                        }
+    except Exception as e:
+        print(f"Failed to get random anime: {str(e)}")
+
+    return None
+
+
+#Random_Anime
+@dp.message_handler(Text(equals="⟡Random Anime⟡"))
+async def random_anime_command(message: types.Message):
+    random_anime = await get_random_anime()
+    if random_anime:
+        anime_id = random_anime["id"]
+        anime_title = random_anime["title"]
+        anime_image_url = random_anime["image_url"]
+        anime_description = random_anime["description"]
+
+        photo_caption = f"Random Anime:\n\nTitle: <b>{html.escape(anime_title)}</b>"
+        await bot.send_photo(message.chat.id, photo=anime_image_url, caption=photo_caption, parse_mode="HTML")
+
+        description_caption = f"Description: <b>{html.escape(anime_description)}</b>\n\nWatch on Kitsu: <a href='https://kitsu.io/anime/{anime_id}'>Link</a>"
+        await bot.send_message(message.chat.id, description_caption, parse_mode="HTML")
+    else:
+        await message.reply("Failed to get random anime.")
 
 
 if __name__ == '__main__':
