@@ -1,0 +1,13 @@
+aiogram
+kitsu
+asyncio
+random
+requests
+json
+giphy_client
+aiohttp
+time
+html
+googletrans
+google-api-python-client
+youtube_dl
