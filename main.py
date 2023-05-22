@@ -26,7 +26,7 @@ giphy_api_key = "WN2wTCexCkLA6SbotqtjOq6Dy4yVsY6C"
 api_instance = giphy_client.DefaultApi()
 
 
-#Start_Command
+#Start_CommandD
 @dp.message_handler(commands=['start'])
 async def start_handler(message: types.Message):
     exist_user = check_existing(message.chat.id)
