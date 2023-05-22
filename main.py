@@ -1,4 +1,12 @@
-import aiogram, kitsu, asyncio, random, requests, json, giphy_client, aiohttp, time, html
+import aiogram
+import kitsu
+import asyncio
+import random
+import requests
+import json
+import giphy_client
+import aiohttp
+import html
 from aiogram.types import ContentType, Message
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.dispatcher.filters import Text
@@ -8,10 +16,6 @@ from aiogram.dispatcher import FSMContext
 from keyboard import menu
 from db import check_existing, add_user
 import aiogram.utils.markdown as fmt
-from googletrans import Translator
-import os
-from googleapiclient.discovery import build
-from youtube_dl import YoutubeDL
 
 
 client = kitsu.Client()
